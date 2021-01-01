@@ -18,6 +18,7 @@ type record struct {
 	Last_visit time.Time `json:"last_vist"`
 	Uri        string    `json:"uri"`
 	Key        string    `json:"key"`
+	Gurl       string    `json:"gurl"`
 }
 
 func main() {
@@ -121,7 +122,12 @@ func main() {
 			uri := ctx.UserValue("uri").(string)
 
 			// marshal it
-			rec := record{Last_visit: time.Now(), Key: k.String(), Uri: "https://" + uri}
+			rec := record{
+				Last_visit: time.Now(),
+				Key:        k.String(),
+				Uri:        "https://" + uri,
+				Gurl:       string(ctx.Host()) + "/b/" + k.String(), // gotta be a better way
+			}
 			out, err := json.Marshal(rec)
 			if err != nil {
 				log.Fatal("couldn't marshal: ", err)
