@@ -92,7 +92,7 @@ func main() {
 		}
 	}()
 
-	// simple fasthttp server
+	// set up our routing
 	rtr := router.New()
 	rtr.GET("/", func(ctx *fasthttp.RequestCtx) {
 		fmt.Fprintln(ctx, "Haaaaay, gurl! This is an ultralight url shortener.\nTry /create/your-url!")
@@ -141,8 +141,6 @@ func main() {
 	})
 	rtr.GET("/b/{req_uri}", func(ctx *fasthttp.RequestCtx) {
 		var rec record
-		// assume https because why not
-		// req_uri.WriteString("https://")
 
 		// build redirect
 		err = db.View(func(tx *bolt.Tx) error {
