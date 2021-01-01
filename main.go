@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
@@ -22,6 +23,15 @@ func main() {
 	// url safe characters
 	alphabet := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
+	// config
+	host := flag.String("b", ":9999", "A simple bindhost string, eg: \":9999\" or \"127.0.0.1\"")
+	uri_size := flag.Uint("l", 10, "set the generated uri string length, eg: 10")
+	dash := flag.Uint("-d", 5, "set how often to insert a dash, eg: 5")
+	flag.Parse()
+
+	// golang seed is subpar.
+	rand.Seed(time.Now().UnixNano())
+
 	// make db connection
 	db, err := bolt.Open("uri.store", 0600, nil)
 	if err != nil {
@@ -38,10 +48,6 @@ func main() {
 		}
 		return nil
 	})
-
-	// config
-	host := "127.0.0.1:9999"
-	uri_size := 10
 	// simple fasthttp server
 	rtr := router.New()
 	rtr.GET("/", func(ctx *fasthttp.RequestCtx) {
@@ -65,9 +71,9 @@ func main() {
 	rtr.GET("/create/{uri}", func(ctx *fasthttp.RequestCtx) {
 		db.Update(func(tx *bolt.Tx) error {
 			var k bytes.Buffer
-			for c := 0; c <= uri_size; c++ {
+			for c := uint(0); c <= *uri_size; c++ {
 				// if it's not the first or last
-				if c != 0 && c != uri_size && c%5 == 0 {
+				if c != uint(0) && c != *uri_size && c%*dash == 0 {
 					// every 5 characters insert a dash.
 					k.WriteRune('-')
 				}
@@ -97,5 +103,5 @@ func main() {
 		// send it
 		ctx.Redirect(req_uri.String(), 302)
 	})
-	log.Fatal(fasthttp.ListenAndServe(host, rtr.Handler))
+	log.Fatal(fasthttp.ListenAndServe(*host, rtr.Handler))
 }
