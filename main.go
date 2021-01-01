@@ -28,9 +28,9 @@ func main() {
 	host := flag.String("b", ":9999", "A simple bindhost string, eg: \":9999\" or \"127.0.0.1\"")
 	uri_size := flag.Uint("l", 10, "set the generated uri string length")
 	dash := flag.Uint("d", 5, "set how often to insert a dash")
-	dt, err := time.ParseDuration("10s")
+	dt, err := time.ParseDuration("24h")
 	if err != nil {
-		dt = time.Second * 10
+		dt = time.Hour * 24
 	}
 	cache_to := flag.String("c", dt.String(), "set the time delta for cache expiry")
 	flag.Parse()
@@ -72,8 +72,8 @@ func main() {
 						if err != nil {
 							ct = time.Second * 10
 						}
-						if time.Now().Sub(rec.Last_visit) >= ct {
-							log.Printf("%s has expired @ %d seconds", rec.Key, time.Now().Sub(rec.Last_visit))
+						if time.Since(rec.Last_visit) >= ct {
+							log.Printf("%s has expired %s seconds ago", rec.Key, time.Since(rec.Last_visit))
 							err = b.Delete([]byte(rec.Key))
 							if err != nil {
 								log.Fatal("couldn't delete key ", err)
@@ -103,6 +103,8 @@ func main() {
 		db.Update(func(tx *bolt.Tx) error {
 			// build our key and get uri
 			var k bytes.Buffer
+			b := tx.Bucket([]byte("gurls"))
+
 			for c := uint(0); c <= *uri_size; c++ {
 				// if it's not the first or last
 				if c != uint(0) && c != *uri_size && c%*dash == 0 {
@@ -110,6 +112,11 @@ func main() {
 					k.WriteRune('-')
 				}
 				k.WriteRune(alphabet[rand.Intn(len(alphabet))])
+			}
+			found := b.Get(k.Bytes())
+			if found != nil {
+				fmt.Fprintln(ctx, "Oh my, now that's embarassing! I swear this never happens! Can we start over?")
+				return nil
 			}
 			uri := ctx.UserValue("uri").(string)
 
@@ -120,7 +127,7 @@ func main() {
 				log.Fatal("couldn't marshal: ", err)
 			}
 
-			b := tx.Bucket([]byte("gurls"))
+			// send it
 			err = b.Put(k.Bytes(), out)
 			fmt.Fprint(ctx, string(out))
 			return err
