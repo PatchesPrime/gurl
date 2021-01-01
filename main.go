@@ -32,7 +32,7 @@ func main() {
 	if err != nil {
 		dt = time.Second * 10
 	}
-	cache_to := flag.String("c", dt.String(), "set the time in seconds for cache expiry")
+	cache_to := flag.String("c", dt.String(), "set the time delta for cache expiry")
 	flag.Parse()
 
 	// golang seed is subpar.
