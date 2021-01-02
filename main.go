@@ -21,9 +21,24 @@ type record struct {
 	Gurl       string    `json:"gurl"`
 }
 
-func main() {
+func genKey(key_length uint, div_freq uint) *bytes.Buffer {
 	// url safe characters
 	alphabet := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	// build our key and get uri
+	var k bytes.Buffer
+
+	for c := uint(0); c <= key_length; c++ {
+		// if it's not the first or last
+		if c != uint(0) && c != key_length && c%div_freq == 0 {
+			// every 5 characters insert a dash.
+			k.WriteRune('-')
+		}
+		k.WriteRune(alphabet[rand.Intn(len(alphabet))])
+	}
+	return &k
+}
+
+func main() {
 
 	// config
 	host := flag.String("b", ":9999", "A simple bindhost string, eg: \":9999\" or \"127.0.0.1\"")
@@ -99,18 +114,10 @@ func main() {
 	rtr.GET("/create/{uri}", func(ctx *fasthttp.RequestCtx) {
 		db.Update(func(tx *bolt.Tx) error {
 			// build our key and get uri
-			var k bytes.Buffer
 			b := tx.Bucket([]byte("gurls"))
-
-			for c := uint(0); c <= *uri_size; c++ {
-				// if it's not the first or last
-				if c != uint(0) && c != *uri_size && c%*dash == 0 {
-					// every 5 characters insert a dash.
-					k.WriteRune('-')
-				}
-				k.WriteRune(alphabet[rand.Intn(len(alphabet))])
-			}
-			found := b.Get(k.Bytes())
+			key := genKey(*uri_size, *dash)
+			// check for collision
+			found := b.Get(key.Bytes())
 			if found != nil {
 				fmt.Fprintln(ctx, "Oh my, now that's embarassing! I swear this never happens! Can we start over?")
 				return nil
@@ -120,9 +127,9 @@ func main() {
 			// marshal it
 			rec := record{
 				Last_visit: time.Now(),
-				Key:        k.String(),
+				Key:        key.String(),
 				Uri:        "https://" + uri,
-				Gurl:       string(ctx.Host()) + "/b/" + k.String(), // gotta be a better way
+				Gurl:       string(ctx.Host()) + "/b/" + key.String(), // gotta be a better way
 			}
 			out, err := json.Marshal(rec)
 			if err != nil {
@@ -130,7 +137,7 @@ func main() {
 			}
 
 			// send it
-			err = b.Put(k.Bytes(), out)
+			err = b.Put(key.Bytes(), out)
 			fmt.Fprint(ctx, string(out))
 			return err
 		})
