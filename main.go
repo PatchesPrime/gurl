@@ -153,7 +153,7 @@ func main() {
 				ctx.NotFound()
 				return err
 			}
-			rec.Expires = rec.Expires.Add(ct)
+			rec.Expires = time.Now().Add(ct)
 			out, err := json.Marshal(rec)
 			if err != nil {
 				log.Fatal("couldn't marshal: ", err)
