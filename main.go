@@ -29,11 +29,7 @@ func main() {
 	host := flag.String("b", ":9999", "A simple bindhost string, eg: \":9999\" or \"127.0.0.1\"")
 	uri_size := flag.Uint("l", 10, "set the generated uri string length")
 	dash := flag.Uint("d", 5, "set how often to insert a dash")
-	dt, err := time.ParseDuration("24h")
-	if err != nil {
-		dt = time.Hour * 24
-	}
-	cache_to := flag.String("c", dt.String(), "set the time delta for cache expiry")
+	cache_to := flag.String("c", "24h", "set the time delta for cache expiry")
 	flag.Parse()
 
 	// golang seed is subpar.
@@ -71,7 +67,7 @@ func main() {
 						}
 						ct, err := time.ParseDuration(*cache_to)
 						if err != nil {
-							ct = time.Second * 10
+							log.Println("couldn't parse cache ttl: ", err)
 						}
 						if time.Since(rec.Last_visit) >= ct {
 							log.Printf("%s has expired %s seconds ago", rec.Key, time.Since(rec.Last_visit))
@@ -143,13 +139,21 @@ func main() {
 		var rec record
 
 		// build redirect
-		err = db.View(func(tx *bolt.Tx) error {
+		err = db.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte("gurls"))
-			err = json.Unmarshal(b.Get([]byte(ctx.UserValue("req_uri").(string))), &rec)
+			key := []byte(ctx.UserValue("req_uri").(string))
+			err = json.Unmarshal(b.Get(key), &rec)
 			if err != nil {
 				ctx.NotFound()
 				return err
 			}
+			rec.Last_visit = time.Now()
+
+			out, err := json.Marshal(rec)
+			if err != nil {
+				log.Fatal("couldn't marshal: ", err)
+			}
+			err = b.Put(key, out)
 
 			// send it
 			ctx.Redirect(rec.Uri, 302)
