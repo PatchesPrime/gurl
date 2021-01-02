@@ -15,10 +15,10 @@ import (
 )
 
 type record struct {
-	Last_visit time.Time `json:"last_vist"`
-	Uri        string    `json:"uri"`
-	Key        string    `json:"key"`
-	Gurl       string    `json:"gurl"`
+	Expires time.Time `json:"last_vist"`
+	Uri     string    `json:"uri"`
+	Key     string    `json:"key"`
+	Gurl    string    `json:"gurl"`
 }
 
 func genKey(key_length uint, div_freq uint) *bytes.Buffer {
@@ -50,6 +50,11 @@ func main() {
 	// golang seed is subpar.
 	rand.Seed(time.Now().UnixNano())
 
+	ct, err := time.ParseDuration(*cache_to)
+	if err != nil {
+		log.Println("couldn't parse cache ttl: ", err)
+	}
+
 	// make db connection
 	db, err := bolt.Open("uri.store", 0600, nil)
 	if err != nil {
@@ -72,7 +77,6 @@ func main() {
 		for {
 			err := db.Update(func(tx *bolt.Tx) error {
 				b := tx.Bucket([]byte("gurls"))
-
 				err = b.ForEach(func(k, v []byte) error {
 					if v != nil {
 						var rec record
@@ -80,12 +84,8 @@ func main() {
 						if err != nil {
 							return err
 						}
-						ct, err := time.ParseDuration(*cache_to)
-						if err != nil {
-							log.Println("couldn't parse cache ttl: ", err)
-						}
-						if time.Since(rec.Last_visit) >= ct {
-							log.Printf("%s has expired %s seconds ago", rec.Key, time.Since(rec.Last_visit))
+						if time.Now().After(rec.Expires) {
+							log.Printf("%s expired %fs ago", rec.Key, time.Now().Sub(rec.Expires).Seconds())
 							err = b.Delete([]byte(rec.Key))
 							if err != nil {
 								log.Fatal("couldn't delete key ", err)
@@ -126,10 +126,10 @@ func main() {
 
 			// marshal it
 			rec := record{
-				Last_visit: time.Now(),
-				Key:        key.String(),
-				Uri:        "https://" + uri,
-				Gurl:       string(ctx.Host()) + "/b/" + key.String(), // gotta be a better way
+				Expires: time.Now().Add(ct),
+				Key:     key.String(),
+				Uri:     "https://" + uri,
+				Gurl:    string(ctx.Host()) + "/b/" + key.String(), // gotta be a better way
 			}
 			out, err := json.Marshal(rec)
 			if err != nil {
@@ -144,7 +144,6 @@ func main() {
 	})
 	rtr.GET("/b/{req_uri}", func(ctx *fasthttp.RequestCtx) {
 		var rec record
-
 		// build redirect
 		err = db.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte("gurls"))
@@ -154,8 +153,7 @@ func main() {
 				ctx.NotFound()
 				return err
 			}
-			rec.Last_visit = time.Now()
-
+			rec.Expires = rec.Expires.Add(ct)
 			out, err := json.Marshal(rec)
 			if err != nil {
 				log.Fatal("couldn't marshal: ", err)
