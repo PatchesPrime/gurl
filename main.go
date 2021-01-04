@@ -173,5 +173,20 @@ func main() {
 			return nil
 		})
 	})
+	rtr.GET("/d/{key}", func(ctx *fasthttp.RequestCtx) {
+		err = db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte("gurls"))
+			key := []byte(ctx.UserValue("key").(string))
+			err = b.Delete(key)
+			if err != nil {
+				return err
+			}
+			fmt.Fprint(ctx, "done")
+			return nil
+		})
+		if err != nil {
+			log.Println("delete request failed: ", err)
+		}
+	})
 	log.Fatal(fasthttp.ListenAndServe(*host, rtr.Handler))
 }
