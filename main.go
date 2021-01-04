@@ -106,7 +106,7 @@ func main() {
 	// set up our routing
 	rtr := router.New()
 	rtr.GET("/", func(ctx *fasthttp.RequestCtx) {
-		fmt.Fprintln(ctx, "Haaaaay, gurl! This is an ultralight url shortener.\nTry /create/your-url!")
+		fmt.Fprintln(ctx, "Haaaaay, gurl! This is an ultralight url shortener.\nTry /c/your-url!")
 	})
 	rtr.GET("/c/{uri}", func(ctx *fasthttp.RequestCtx) {
 		db.Update(func(tx *bolt.Tx) error {
