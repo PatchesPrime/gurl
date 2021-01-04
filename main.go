@@ -88,7 +88,7 @@ func main() {
 							log.Printf("%s expired %fs ago", rec.Key, time.Now().Sub(rec.Expires).Seconds())
 							err = b.Delete([]byte(rec.Key))
 							if err != nil {
-								log.Fatal("couldn't delete key ", err)
+								log.Println("couldn't delete key ", err)
 							}
 						}
 					}
@@ -97,7 +97,7 @@ func main() {
 				return nil
 			})
 			if err != nil {
-				log.Fatalf("watcher died: %#v", err)
+				log.Printf("db operation failure: %#v", err)
 			}
 			time.Sleep(time.Second)
 		}
@@ -108,10 +108,7 @@ func main() {
 	rtr.GET("/", func(ctx *fasthttp.RequestCtx) {
 		fmt.Fprintln(ctx, "Haaaaay, gurl! This is an ultralight url shortener.\nTry /create/your-url!")
 	})
-	rtr.GET("/create", func(ctx *fasthttp.RequestCtx) {
-		fmt.Fprintln(ctx, "Oops! You forgot a trailing /some-url-here after your /create there!")
-	})
-	rtr.GET("/create/{uri}", func(ctx *fasthttp.RequestCtx) {
+	rtr.GET("/c/{uri}", func(ctx *fasthttp.RequestCtx) {
 		db.Update(func(tx *bolt.Tx) error {
 			// build our key and get uri
 			b := tx.Bucket([]byte("gurls"))
@@ -119,17 +116,28 @@ func main() {
 			// check for collision
 			found := b.Get(key.Bytes())
 			if found != nil {
-				fmt.Fprintln(ctx, "Oh my, now that's embarassing! I swear this never happens! Can we start over?")
+				// I'm on the fence about this. Might not even work right.
+				// The chances of collision are astronomically low with anything 10 characters+
+				ctx.Redirect(ctx.URI().String(), 302)
 				return nil
 			}
 			uri := ctx.UserValue("uri").(string)
+
+			// there still has to be a better way, still learning the library.
+			var gurl string
+			if ctx.IsTLS() {
+				gurl += "https://"
+			} else {
+				gurl += "http://"
+			}
+			gurl += string(ctx.Host()) + "/b/" + key.String()
 
 			// marshal it
 			rec := record{
 				Expires: time.Now().Add(ct),
 				Key:     key.String(),
 				Uri:     "https://" + uri,
-				Gurl:    string(ctx.Host()) + "/b/" + key.String(), // gotta be a better way
+				Gurl:    gurl,
 			}
 			out, err := json.Marshal(rec)
 			if err != nil {
