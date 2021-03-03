@@ -109,6 +109,7 @@ func main() {
 		fmt.Fprintln(ctx, "Haaaaay, gurl! This is an ultralight url shortener.\nTry /c/your-url!")
 	})
 	rtr.GET("/c/{uri}", func(ctx *fasthttp.RequestCtx) {
+		ctx.Response.Header.SetBytesV("Access-Control-Allow-Origin", []byte("*"))
 		db.Update(func(tx *bolt.Tx) error {
 			// build our key and get uri
 			b := tx.Bucket([]byte("gurls"))
@@ -174,6 +175,7 @@ func main() {
 		})
 	})
 	rtr.GET("/d/{key}", func(ctx *fasthttp.RequestCtx) {
+		ctx.Response.Header.SetBytesV("Access-Control-Allow-Origin", []byte("*"))
 		err = db.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte("gurls"))
 			key := []byte(ctx.UserValue("key").(string))
