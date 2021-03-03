@@ -38,6 +38,14 @@ func genKey(key_length uint, div_freq uint) *bytes.Buffer {
 	return &k
 }
 
+// super basic logger
+func reqLogger(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		ctx.Logger().Printf("%s", ctx.UserAgent())
+		next(ctx)
+	}
+}
+
 func main() {
 
 	// config
@@ -190,5 +198,5 @@ func main() {
 			log.Println("delete request failed: ", err)
 		}
 	})
-	log.Fatal(fasthttp.ListenAndServe(*host, rtr.Handler))
+	log.Fatal(fasthttp.ListenAndServe(*host, reqLogger(rtr.Handler)))
 }
