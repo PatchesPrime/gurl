@@ -118,7 +118,7 @@ func main() {
 	rtr.GET("/", func(ctx *fasthttp.RequestCtx) {
 		fmt.Fprintln(ctx, "Haaaaay, gurl! This is an ultralight url shortener.\nTry /c/your-url!")
 	})
-	rtr.GET("/c/{uri}", func(ctx *fasthttp.RequestCtx) {
+	rtr.GET("/c/{uri:*}", func(ctx *fasthttp.RequestCtx) {
 		ctx.Response.Header.SetBytesV("Access-Control-Allow-Origin", []byte("*"))
 		db.Update(func(tx *bolt.Tx) error {
 			// build our key and get uri
