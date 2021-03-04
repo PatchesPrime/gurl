@@ -6,6 +6,7 @@ require (
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/boltdb/bolt v1.3.1
 	github.com/fasthttp/router v1.3.4
+	github.com/google/uuid v1.2.0
 	github.com/klauspost/compress v1.11.4 // indirect
 	github.com/valyala/fasthttp v1.18.0
 	github.com/yuin/goldmark v1.3.1 // indirect

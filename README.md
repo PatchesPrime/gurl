@@ -5,7 +5,7 @@ A simple Golang URL shortener thrown together then expanded upon for a friend.
 
  - /c/{url} - Provides a JSON response with the relevent information and shortened generated URL (gurl)
  - /b/{key} - "B" for bounce, this endpoint takes a key and preforms the redirect.
- - /d/{key} - Delete a key from our database before its expire date.
+ - /d/{key}/{token} - Delete a key from our database before its expire date using its one-time-token.
 ### Command Line Arguments
 
     Usage of gurl:

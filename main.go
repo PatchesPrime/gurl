@@ -11,6 +11,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/fasthttp/router"
+	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 )
 
@@ -19,6 +20,7 @@ type record struct {
 	Uri     string    `json:"uri"`
 	Key     string    `json:"key"`
 	Gurl    string    `json:"gurl"`
+	Token   string    `json:"token"`
 }
 
 func genKey(key_length uint, div_freq uint) *bytes.Buffer {
@@ -36,6 +38,14 @@ func genKey(key_length uint, div_freq uint) *bytes.Buffer {
 		k.WriteRune(alphabet[rand.Intn(len(alphabet))])
 	}
 	return &k
+}
+
+// super basic logger
+func reqLogger(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		ctx.Logger().Printf("%s", ctx.UserAgent())
+		next(ctx)
+	}
 }
 
 func main() {
@@ -108,7 +118,8 @@ func main() {
 	rtr.GET("/", func(ctx *fasthttp.RequestCtx) {
 		fmt.Fprintln(ctx, "Haaaaay, gurl! This is an ultralight url shortener.\nTry /c/your-url!")
 	})
-	rtr.GET("/c/{uri}", func(ctx *fasthttp.RequestCtx) {
+	rtr.GET("/c/{uri:*}", func(ctx *fasthttp.RequestCtx) {
+		ctx.Response.Header.SetBytesV("Access-Control-Allow-Origin", []byte("*"))
 		db.Update(func(tx *bolt.Tx) error {
 			// build our key and get uri
 			b := tx.Bucket([]byte("gurls"))
@@ -132,12 +143,19 @@ func main() {
 			}
 			gurl += string(ctx.Host()) + "/b/" + key.String()
 
+			// get a uuid
+			token, err := uuid.NewRandom()
+			if err != nil {
+				log.Fatal("couldn't get a uuid:", err)
+			}
+
 			// marshal it
 			rec := record{
 				Expires: time.Now().Add(ct),
 				Key:     key.String(),
 				Uri:     "https://" + uri,
 				Gurl:    gurl,
+				Token:   token.String(),
 			}
 			out, err := json.Marshal(rec)
 			if err != nil {
@@ -173,20 +191,32 @@ func main() {
 			return nil
 		})
 	})
-	rtr.GET("/d/{key}", func(ctx *fasthttp.RequestCtx) {
+	rtr.GET("/d/{key}/{token}", func(ctx *fasthttp.RequestCtx) {
+		ctx.Response.Header.SetBytesV("Access-Control-Allow-Origin", []byte("*"))
 		err = db.Update(func(tx *bolt.Tx) error {
+			var rec record
 			b := tx.Bucket([]byte("gurls"))
 			key := []byte(ctx.UserValue("key").(string))
-			err = b.Delete(key)
+			err = json.Unmarshal(b.Get(key), &rec)
 			if err != nil {
+				ctx.NotFound()
 				return err
 			}
-			fmt.Fprint(ctx, "done")
+			if rec.Token == ctx.UserValue("token") {
+				err = b.Delete(key)
+				if err != nil {
+					return err
+				}
+				fmt.Fprint(ctx, "done")
+
+				return nil
+			}
+			fmt.Fprint(ctx, "access denied")
 			return nil
 		})
 		if err != nil {
 			log.Println("delete request failed: ", err)
 		}
 	})
-	log.Fatal(fasthttp.ListenAndServe(*host, rtr.Handler))
+	log.Fatal(fasthttp.ListenAndServe(*host, reqLogger(rtr.Handler)))
 }
