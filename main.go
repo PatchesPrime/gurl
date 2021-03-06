@@ -251,6 +251,7 @@ func main() {
 				log.Infof("bad lookup for %s", key)
 				ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 				fmt.Fprint(ctx, "401 Access Denied")
+				return nil
 			}
 			if rec.Token == ctx.UserValue("token") {
 				err = b.Delete(key)
