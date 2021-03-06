@@ -8,6 +8,7 @@ require (
 	github.com/fasthttp/router v1.3.4
 	github.com/google/uuid v1.2.0
 	github.com/klauspost/compress v1.11.4 // indirect
+	github.com/sirupsen/logrus v1.8.0
 	github.com/valyala/fasthttp v1.18.0
 	github.com/yuin/goldmark v1.3.1 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
