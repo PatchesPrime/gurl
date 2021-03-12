@@ -56,14 +56,17 @@ func reqLogger(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	}
 }
 
+// config
+var (
+	host       = flag.String("addr", ":9999", "A simple bindhost string, eg: \":9999\" or \"127.0.0.1\"")
+	uri_size   = flag.Uint("len", 10, "set the generated uri string length")
+	dash       = flag.Uint("sep", 5, "set how often to insert a dash")
+	cache_to   = flag.String("exp", "24h", "set the time delta for cache expiry")
+	web        = flag.String("dir", "./static", "set the directory for web/html files served at webroot")
+	warn_level = flag.String("log", "Info", "set the alert/warn level of the logging. Info, Warn, Error, Fatal, Panic")
+)
+
 func main() {
-	// config
-	host := flag.String("b", ":9999", "A simple bindhost string, eg: \":9999\" or \"127.0.0.1\"")
-	uri_size := flag.Uint("l", 10, "set the generated uri string length")
-	dash := flag.Uint("d", 5, "set how often to insert a dash")
-	cache_to := flag.String("c", "24h", "set the time delta for cache expiry")
-	web := flag.String("w", "./static", "set the directory for web/html files served at webroot")
-	warn_level := flag.String("a", "Info", "set the alert/warn level of the logging. Info, Warn, Error, Fatal, Panic")
 	flag.Parse()
 
 	// set up log here
