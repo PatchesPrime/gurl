@@ -43,6 +43,8 @@ func genKey(key_length uint, div_freq uint) *bytes.Buffer {
 // super basic logger
 func reqLogger(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
+		// set the default
+		ctx.Response.Header.SetBytesV("Access-Control-Allow-Origin", []byte(*acao))
 		// Normmaly I'd use log.WithFields() but it adds annoying whitespace for..some reason.
 		// TODO: resolve the whitespace thing.
 		log.Debugf("[%s] %s %s | (%s, %s, %s)",
@@ -64,6 +66,7 @@ var (
 	cache_to   = flag.String("exp", "24h", "set the time delta for cache expiry")
 	web        = flag.String("dir", "./static", "set the directory for web/html files served at webroot")
 	warn_level = flag.String("log", "Info", "set the alert/warn level of the logging. Info, Warn, Error, Fatal, Panic")
+	acao       = flag.String("acao", "*", "Set the Access-Control-Allow-Origin header")
 )
 
 func main() {
@@ -148,7 +151,6 @@ func main() {
 		fsHandler(ctx)
 	})
 	rtr.POST("/c/{uri:*}", func(ctx *fasthttp.RequestCtx) {
-		ctx.Response.Header.SetBytesV("Access-Control-Allow-Origin", []byte("*"))
 		ctx.SetContentType("application/json")
 		err := db.Update(func(tx *bolt.Tx) error {
 			// build our key and get uri
@@ -237,7 +239,6 @@ func main() {
 		})
 	})
 	rtr.DELETE("/d/{key}/{token}", func(ctx *fasthttp.RequestCtx) {
-		ctx.Response.Header.SetBytesV("Access-Control-Allow-Origin", []byte("*"))
 		err = db.Update(func(tx *bolt.Tx) error {
 			var rec record
 			b := tx.Bucket([]byte("gurls"))
