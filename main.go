@@ -147,8 +147,9 @@ func main() {
 	rtr.GET("/", func(ctx *fasthttp.RequestCtx) {
 		fsHandler(ctx)
 	})
-	rtr.GET("/c/{uri:*}", func(ctx *fasthttp.RequestCtx) {
+	rtr.POST("/c/{uri:*}", func(ctx *fasthttp.RequestCtx) {
 		ctx.Response.Header.SetBytesV("Access-Control-Allow-Origin", []byte("*"))
+		ctx.SetContentType("application/json")
 		err := db.Update(func(tx *bolt.Tx) error {
 			// build our key and get uri
 			b := tx.Bucket([]byte("gurls"))
@@ -235,7 +236,7 @@ func main() {
 			return nil
 		})
 	})
-	rtr.GET("/d/{key}/{token}", func(ctx *fasthttp.RequestCtx) {
+	rtr.DELETE("/d/{key}/{token}", func(ctx *fasthttp.RequestCtx) {
 		ctx.Response.Header.SetBytesV("Access-Control-Allow-Origin", []byte("*"))
 		err = db.Update(func(tx *bolt.Tx) error {
 			var rec record
