@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+	"regexp"
 
 	"github.com/boltdb/bolt"
 	"github.com/fasthttp/router"
@@ -181,6 +182,10 @@ func main() {
 				log.Errorf("couldn't get a uuid:", err)
 				return err
 			}
+
+			// Remove http(s) prefix if provided to avoid duplication
+			re := regexp.MustCompile("^(http|https)://")
+			uri = re.ReplaceAllString(uri, "")
 
 			// marshal it
 			rec := record{
