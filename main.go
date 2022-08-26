@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
-	"regexp"
 
 	"github.com/boltdb/bolt"
 	"github.com/fasthttp/router"
@@ -184,8 +183,12 @@ func main() {
 			}
 
 			// Remove http(s) prefix if provided to avoid duplication
-			re := regexp.MustCompile("^(http|https)://")
-			uri = re.ReplaceAllString(uri, "")
+			for i, rune := range uri {
+				if rune == '/' {
+					uri = uri[i:]
+					break
+				}
+			}
 
 			// marshal it
 			rec := record{
