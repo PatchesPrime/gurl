@@ -3,5 +3,8 @@ FROM golang:1.19.0-alpine
 
 WORKDIR /gurl
 COPY ./ ./
+RUN go mod download
 
-CMD ["go", "run", "main.go"]
+RUN go build -o gurl
+
+CMD ["./gurl"]
