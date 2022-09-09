@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+	"strings"
 
 	"github.com/boltdb/bolt"
 	"github.com/fasthttp/router"
@@ -180,6 +181,19 @@ func main() {
 			if err != nil {
 				log.Errorf("couldn't get a uuid:", err)
 				return err
+			}
+
+			// Remove http(s) prefix if provided to avoid duplication
+			if strings.Contains(uri, "http") {
+				// Split in 3 parts ([http:/, /, uri])
+				uri = strings.SplitAfterN(uri, "/", 3)[2]
+			}
+
+			// In case provided uri still isn't correct
+			if uri[0] == '/' || uri[0] == ':'{
+				ctx.SetStatusCode(fasthttp.StatusPreconditionFailed);
+				ctx.SetBodyString("Invalid url provided")
+				return nil
 			}
 
 			// marshal it
